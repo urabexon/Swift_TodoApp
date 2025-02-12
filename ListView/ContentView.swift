@@ -19,12 +19,12 @@ struct FirstView: View {
     // タスクを入れておくための配列
     @State var tasksArray: [Task] = []
     // 画面生成時にtasksDataをデコードした値をtasksArrayに入れる
-    init() {
-        if let decodedTasks = try? JSONDecoder().decode([Task].self, from: tasksData) {
-            _tasksArray =  State(initialValue: decodedTasks)
-             print(tasksArray)
-        }
-    }
+//    init() {
+//        if let decodedTasks = try? JSONDecoder().decode([Task].self, from: tasksData) {
+//            _tasksArray =  State(initialValue: decodedTasks)
+//             print(tasksArray)
+//        }
+//    }
     
     var body: some View {
         NavigationStack {
@@ -39,6 +39,8 @@ struct FirstView: View {
                 ForEach(tasksArray) { task in
                     Text(task.taskItem)
                 }
+                // 削除機能を追加
+                .onDelete(perform: deleteTask)
                 // リストの並び替え時の処理を設定
                 .onMove(perform: { from, to in
                     replaceRow(from, to)
@@ -51,12 +53,32 @@ struct FirstView: View {
             .navigationTitle("Task List")
         }
         .padding()
+        // ビューが表示されたタイミングでtasksDataからデコードしてtasksArrayを更新する
+        .onAppear() {
+            if let decodedTasks = try? JSONDecoder().decode([Task].self, from: tasksData) {
+                tasksArray = decodedTasks
+            }
+        }
     }
     // 並び替え処理と並び替え後の保存
     func replaceRow(_ from: IndexSet, _ to: Int) {
         tasksArray.move(fromOffsets: from, toOffset: to) // 配列内での並び替え
         if let encodedArray = try? JSONEncoder().encode(tasksArray) {
             tasksData = encodedArray // エンコードできたらAppStorageに渡す(保存・更新)
+        }
+    }
+    // 削除機能
+    func deleteTask(at offsets: IndexSet) {
+        // 現在のタスク配列をコピーして更新する
+        var updatedTasks = tasksArray
+        updatedTasks.remove(atOffsets: offsets)
+        // エンコード
+        if let encodedData = try? JSONEncoder().encode(updatedTasks) {
+            // エンコード成功時、画面とUserDefaultsのデータ更新
+            tasksArray = updatedTasks
+            tasksData = encodedData
+        } else {
+            print("Encoding failed.")
         }
     }
 }
@@ -107,6 +129,10 @@ struct SecondView: View {
     }
 }
 
+//struct Task: Identifiable, Codable {
+//    let id = UUID()
+//    var taskItem: String
+//}
 
 #Preview {
     ContentView()
